@@ -127,6 +127,8 @@ INTERNAL_IPS = [
     # ...
 ]
 
+import sys
+
 TESTING = "test" in sys.argv
 
 if not TESTING:
