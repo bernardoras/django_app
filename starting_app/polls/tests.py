@@ -138,3 +138,56 @@ class QuestionDetailViewTests(TestCase):
         url = reverse("polls:detail", args=(past_question.id,))
         response = self.client.get(url)
         self.assertContains(response, past_question.question_text)
+
+class QuestionIntegrationTests(TestCase):
+
+    def test_create_and_display_question(self):
+        """
+        Test the entire flow of creating a question and verifying its display
+        on the index page.
+        """
+        question = create_question(question_text="Integration Test Question", days=-1)
+        
+        response = self.client.get(reverse("polls:index"))
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Integration Test Question")
+        self.assertQuerySetEqual(
+            response.context["latest_question_list"],
+            [question],
+        )
+
+class QuestionDetailIntegrationTests(TestCase):
+    def test_create_and_view_detail(self):
+        """
+        Test the flow from creating a question to viewing its detail page.
+        """
+        question = create_question(question_text="Detail Integration Test", days=-1)
+        
+        url = reverse("polls:detail", args=(question.id,))
+        
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Detail Integration Test")
+
+
+
+class QuestionCreateEditIntegrationTests(TestCase):
+    def test_create_and_edit_question(self):
+        """
+        Test the flow of creating a question and then editing it.
+        """
+        question = create_question(question_text="Edit Test Question", days=-1)
+        
+        self.assertEqual(Question.objects.count(), 1)
+        self.assertEqual(question.question_text, "Edit Test Question")
+        
+        question.question_text = "Edited Test Question"
+        question.save()
+        
+        updated_question = Question.objects.get(id=question.id)
+        self.assertEqual(updated_question.question_text, "Edited Test Question")
+        
+        response = self.client.get(reverse("polls:index"))
+        self.assertContains(response, "Edited Test Question")
