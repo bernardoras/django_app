@@ -5,7 +5,7 @@ import datetime
 
 from django.utils import timezone
 
-from .models import Question
+from .models import Question, Choice
 
 class QuestionModelTests(TestCase):
 
@@ -36,6 +36,22 @@ class QuestionModelTests(TestCase):
         time = timezone.now() - datetime.timedelta(hours=23, minutes=59, seconds=59)
         recent_question = Question(pub_date=time)
         self.assertIs(recent_question.was_published_recently(), True)
+
+    def test_question_str(self):
+        """
+        Test the string representation of a Question.
+        """
+        time = timezone.now()
+        question = Question(question_text="Sample Question", pub_date=time)
+        self.assertEqual(str(question), f"Sample Question ({time})")
+
+    def test_choice_str(self):
+        """
+        Test the string representation of a Choice.
+        """
+        question = Question.objects.create(question_text="Sample Question", pub_date=timezone.now())
+        choice = Choice.objects.create(question=question, choice_text="Sample Choice", votes=0)
+        self.assertEqual(str(choice), "choice: Sample Choice")
 
     from django.urls import reverse
 
@@ -191,3 +207,30 @@ class QuestionCreateEditIntegrationTests(TestCase):
         
         response = self.client.get(reverse("polls:index"))
         self.assertContains(response, "Edited Test Question")
+
+class VoteViewTests(TestCase):
+
+    def create_question_with_choices(self, question_text, days, choices):
+        """
+        Helper method to create a question with a given number of choices.
+        `days` is used to create a pub_date offset from now.
+        `choices` is a list of choice texts to be added to the question.
+        """
+        time = timezone.now() + timezone.timedelta(days=days)
+        question = Question.objects.create(question_text=question_text, pub_date=time)
+        for choice_text in choices:
+            question.choice_set.create(choice_text=choice_text, votes=0)
+        return question
+
+    def test_vote_on_existing_question(self):
+        """
+        Test a successful vote on a question.
+        """
+        question = self.create_question_with_choices("Question?", -1, ["Choice 1", "Choice 2"])
+        choice_id = question.choice_set.first().id  # Get the ID of the first choice
+        response = self.client.post(reverse('polls:vote', args=(question.id,)), {'choice': choice_id})
+        self.assertRedirects(response, reverse('polls:results', args=(question.id,)))
+        # Verify the vote count increased
+        question.refresh_from_db()
+        selected_choice = question.choice_set.get(pk=choice_id)
+        self.assertEqual(selected_choice.votes, 1)
