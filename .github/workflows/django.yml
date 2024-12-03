@@ -28,16 +28,10 @@ jobs:
     - name: Run Tests
       run: |
         cd starting_app
-        coverage run manage.py test
-        coverage report -m
+        pytest --cov --cov-report=xml
 
-  steps:
-    - uses: actions/checkout@main
-    - uses: codecov/codecov-action@v5
-    with:
-      fail_ci_if_error: true # optional (default = false)
-      files: ./coverage1.xml,./coverage2.xml # optional
-      flags: unittests # optional
-      name: codecov-umbrella # optional
-      token: ${{ secrets.CODECOV_TOKEN }}
-      verbose: true # optional (default = false)
+    - name: Upload results to Codecov
+          uses: codecov/codecov-action@v5
+          with:
+            token: ${{ secrets.CODECOV_TOKEN }}
+            slug: bernardoras/django_app
